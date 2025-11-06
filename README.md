@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## UW Trivia (Notion-backed)
 
-## Getting Started
+This Django app is a jQuery + Materialize UI that proxies CRUD to Notion databases, acting as middleware between the web UI and Notion.
 
-First, run the development server:
+### Environment
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Create `.env` in the project root with:
+
+```
+NOTION_API_KEY=secret_...
+NOTION_DATABASE_EVENTS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_DATABASE_QUESTIONS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_DATABASE_PRIZES=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NOTION_DATABASE_PLACEMENTS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Notion database schemas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create four Notion databases with these properties:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Events (`NOTION_DATABASE_EVENTS`)
+  - Title: Title
+  - Description: Rich text
+  - Location: Rich text
+  - Starts At: Date
 
-## Learn More
+- Questions (`NOTION_DATABASE_QUESTIONS`)
+  - Text: Title
+  - EventId: Rich text (stores Event page id)
+  - Choice A: Rich text
+  - Choice B: Rich text
+  - Choice C: Rich text (optional)
+  - Choice D: Rich text (optional)
+  - Correct: Select (A, B, C, D)
 
-To learn more about Next.js, take a look at the following resources:
+- Prizes (`NOTION_DATABASE_PRIZES`)
+  - Name: Title
+  - EventId: Rich text
+  - Description: Rich text
+  - Rank: Number
+  - Value: Number
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Placements (`NOTION_DATABASE_PLACEMENTS`)
+  - Participant: Title
+  - EventId: Rich text
+  - Score: Number
+  - Rank: Number
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+You can switch `EventId` to a Relation to the Events DB and adjust `notion_middleware/notion_client.py` accordingly.
 
-## Deploy on Vercel
+### Run
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open `/` to list and create events. Inside an event page, add questions, prizes, and placements via AJAX.

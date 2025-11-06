@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UW Trivia</title>
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <style>
+    html, body { height: 100%; }
+    body { display: flex; min-height: 100vh; flex-direction: column; margin: 0; }
+    main { flex: 1 0 auto; width: 100%; padding: 24px; }
+  </style>
+</head>
+<body>
+  <nav class="purple darken-3">
+    <div class="nav-wrapper">
+      <a href="/" class="brand-logo">UW Trivia</a>
+    </div>
+  </nav>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="page-footer purple darken-3">
+    <div class="footer-copyrigh t">
+      <div>Crowdsourced trivia events</div>
+    </div>
+  </footer>
+</body>
+</html>
+
