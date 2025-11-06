@@ -1,4 +1,4 @@
-export default function Home() {
+export default function Page() {
   return (
     <main className="min-h-screen flex items-center justify-center">
       <div className="container mx-auto px-4 py-8 text-center">
@@ -11,5 +11,5 @@ export default function Home() {
         </p>
       </div>
     </main>
-  );
+  )
 }
