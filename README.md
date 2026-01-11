@@ -1,52 +1,71 @@
-## Blog
+# TriConspiracy - Django Blog with Tor Hidden Service
 
-A simple Django blog application with Materialize CSS UI. Features include blog posts, categories, tags, and a clean, modern interface.
+A Django blog application configured to run as a Tor hidden service, featuring public key authentication, encrypted messaging, and a modern Materialize CSS UI.
 
-### Features
+## Quick Start
+
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run migrations:**
+   ```bash
+   python manage.py migrate
+   ```
+
+3. **Set up Tor hidden service:**
+   See [DOCS/TOR_SETUP_INSTRUCTIONS.md](DOCS/TOR_SETUP_INSTRUCTIONS.md)
+
+4. **Run the server:**
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+
+## Features
 
 - **Blog Posts**: Create, view, and manage blog posts
-- **Categories**: Organize posts by categories
-- **Tags**: Tag posts for better organization
-- **Publishing**: Draft/publish workflow for posts
+- **Categories & Tags**: Organize posts by categories and tags
+- **Public Key Authentication**: Secure authentication using RSA key pairs
+- **Tor Hidden Service**: Runs as a .onion address for privacy
+- **Encrypted Communication**: Tor network-layer encryption
 - **Modern UI**: Materialize CSS design
-- **Tor Hidden Service**: Configured to run as a Tor hidden service
 
-### Models
+## Documentation
 
-- **BlogPost**: Main blog post model with title, content, excerpt, author, category, tags, and publishing status
-- **Category**: Categories for organizing posts
-- **Tag**: Tags for labeling posts
+📚 **All documentation is in the [DOCS](DOCS/) folder.**
 
-### Setup
+See [DOCS/README.md](DOCS/README.md) for a complete index of all documentation files.
 
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
+### Quick Links
+
+- **[Setup Guide](DOCS/TOR_SETUP_INSTRUCTIONS.md)** - Set up Tor hidden service
+- **[Security Guide](DOCS/SECURITY_AND_USAGE.md)** - Security best practices
+- **[API Reference](DOCS/API_REFERENCE.md)** - Complete API documentation
+- **[Tor Encryption](DOCS/TOR_ENCRYPTION_EXPLAINED.md)** - How Tor encryption works
+
+## Project Structure
+
+```
+Django-TriConspiracy/
+├── blog/              # Main blog application
+├── main/              # Django project settings
+├── DOCS/              # All documentation (see DOCS/README.md)
+├── manage.py          # Django management script
+└── requirements.txt   # Python dependencies
 ```
 
-2. Run migrations:
-```bash
-python manage.py migrate
-```
+## Requirements
 
-3. Create a superuser (optional, for admin access):
-```bash
-python manage.py createsuperuser
-```
+- Python 3.8+
+- Django 5.1+
+- Tor (for hidden service)
+- See `requirements.txt` for full list
 
-4. Run the server:
-```bash
-python manage.py runserver
-```
+## License
 
-### Usage
+[Add your license here]
 
-- Visit `/` to see all published blog posts
-- Visit `/create/` to create a new blog post
-- Visit `/admin/` to manage posts, categories, and tags via Django admin
-- Posts can be filtered by category or tag
-- Only published posts are visible to visitors
+---
 
-### Tor Hidden Service
-
-This blog is configured to run as a Tor hidden service. See `TOR_SETUP_INSTRUCTIONS.md` for setup details.
+**For complete documentation, see [DOCS/README.md](DOCS/README.md)**
