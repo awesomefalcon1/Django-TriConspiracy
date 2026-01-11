@@ -7,8 +7,17 @@
     <div class="col s12 m8 offset-m2">
       <h4>Create New Post</h4>
       
+      <div class="card-panel yellow lighten-4">
+        <i class="material-icons left">info</i>
+        <strong>Note:</strong> Your post will be signed with your private key. You'll need to upload your private key file to sign the post.
+      </div>
+      
       <form method="post" id="create-post-form">
         {% csrf_token %}
+        
+        <!-- Hidden fields for signature and timestamp -->
+        <input type="hidden" id="signature" name="signature" value="">
+        <input type="hidden" id="timestamp" name="timestamp" value="">
         
         <div class="input-field">
           <input id="title" name="title" type="text" required>
@@ -56,8 +65,21 @@
           </label>
         </p>
         
-        <button class="btn waves-effect waves-light purple" type="submit">
-          <i class="material-icons left">save</i>Create Post
+        <div class="file-field input-field" style="margin-top: 20px;">
+          <div class="btn purple">
+            <span><i class="material-icons left">vpn_key</i>Select Private Key</span>
+            <input type="file" id="private-key-file" accept=".pem,.key,.txt" required>
+          </div>
+          <div class="file-path-wrapper">
+            <input class="file-path validate" type="text" placeholder="Upload your private key to sign the post">
+          </div>
+        </div>
+        <p class="grey-text text-darken-1" style="font-size: 0.9em;">
+          <i class="material-icons tiny">lock</i> Your private key is used only to sign the post. It never leaves your browser.
+        </p>
+        
+        <button class="btn waves-effect waves-light purple" type="submit" id="submit-btn">
+          <i class="material-icons left">save</i>Create & Sign Post
         </button>
         <a href="{% url 'trivia:post_list' %}" class="btn-flat">Cancel</a>
       </form>
@@ -67,6 +89,77 @@
   <script>
     $(function(){
       $('select').formSelect();
+      
+      // Handle file input
+      $('.file-field').each(function() {
+        $(this).find('input[type="file"]').on('change', function() {
+          const fileName = $(this)[0].files[0]?.name || '';
+          $(this).closest('.file-field').find('.file-path').val(fileName);
+        });
+      });
+      
+      // Handle form submission with signing
+      $('#create-post-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const title = $('#title').val().trim();
+        const content = $('#content').val().trim();
+        const fileInput = $('#private-key-file')[0];
+        
+        if (!title || !content) {
+          M.toast({html: 'Title and content are required'});
+          return;
+        }
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+          M.toast({html: 'Please select your private key file to sign the post'});
+          return;
+        }
+        
+        // Disable submit button
+        $('#submit-btn').prop('disabled', true).text('Signing...');
+        
+        // Read private key file
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            const privateKeyPem = event.target.result;
+            
+            // Create timestamp
+            const timestamp = new Date().toISOString();
+            $('#timestamp').val(timestamp);
+            
+            // Create message to sign: title|content|timestamp
+            const messageToSign = title + '|' + content + '|' + timestamp;
+            
+            // Sign message with private key using jsrsasign
+            const rsa = new RSAKey();
+            rsa.readPrivateKeyFromPEMString(privateKeyPem);
+            const sig = new KJUR.crypto.Signature({"alg": "SHA256withRSA"});
+            sig.init(rsa);
+            sig.updateString(messageToSign);
+            const signature = sig.sign();
+            const signatureB64 = hextob64(signature);
+            
+            // Set signature in form
+            $('#signature').val(signatureB64);
+            
+            // Submit the form
+            e.target.submit();
+          } catch (error) {
+            console.error('Signing error:', error);
+            M.toast({html: 'Error signing post: ' + error.message});
+            $('#submit-btn').prop('disabled', false).html('<i class="material-icons left">save</i>Create & Sign Post');
+          }
+        };
+        
+        reader.onerror = function() {
+          M.toast({html: 'Error reading private key file'});
+          $('#submit-btn').prop('disabled', false).html('<i class="material-icons left">save</i>Create & Sign Post');
+        };
+        
+        reader.readAsText(fileInput.files[0]);
+      });
     });
   </script>
 {% endblock %}

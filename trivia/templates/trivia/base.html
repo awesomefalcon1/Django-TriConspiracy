@@ -29,7 +29,13 @@
       <a href="{% url 'trivia:post_list' %}" class="brand-logo">Blog</a>
       <ul id="nav-mobile" class="right hide-on-med-and-down">
         <li><a href="{% url 'trivia:post_list' %}">Home</a></li>
-        <li><a href="{% url 'trivia:post_create' %}">Write Post</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'trivia:post_create' %}">Write Post</a></li>
+          <li><a href="{% url 'trivia:user_profile' %}">Profile</a></li>
+          <li><a href="#" id="logout-btn">Logout ({{ user.get_short_fingerprint }})</a></li>
+        {% else %}
+          <li><a href="#" id="login-btn">Login</a></li>
+        {% endif %}
       </ul>
     </div>
   </nav>
@@ -52,6 +58,21 @@
       </div>
     </div>
   </footer>
+  
+  <!-- CryptoJS and jsrsasign for client-side cryptography -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/11.0.0/jsrsasign-all-min.js"></script>
+  
+  <script>
+    // Logout handler
+    $(document).ready(function() {
+      $('#logout-btn').on('click', function(e) {
+        e.preventDefault();
+        window.location.href = '/';
+      });
+    });
+  </script>
+  
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
 

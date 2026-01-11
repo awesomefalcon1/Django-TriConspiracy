@@ -20,7 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
 load_dotenv(BASE_DIR / '.env')
-
+# load the hostname.txt file
+with open(BASE_DIR / 'hostname.txt', 'r') as f:
+    TOR_HIDDEN_SERVICE_HOSTNAME = f.read().strip()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -36,15 +38,9 @@ DEBUG = True
 ALLOWED_HOSTS: List[str] = [
     'localhost',
     '127.0.0.1',
-    'rxsfnoyznfaverx7wxod3wfvg4wtj6yxt5hdiujhz2ywtwr6yga6wgqd.onion',  # Tor hidden service
+    TOR_HIDDEN_SERVICE_HOSTNAME,
 ]
 
-# Notion API Configuration
-NOTION_API_KEY = os.getenv('NOTION_API_KEY')
-NOTION_DATABASE_EVENTS = os.getenv('NOTION_DATABASE_EVENTS')
-NOTION_DATABASE_QUESTIONS = os.getenv('NOTION_DATABASE_QUESTIONS')
-NOTION_DATABASE_PRIZES = os.getenv('NOTION_DATABASE_PRIZES')
-NOTION_DATABASE_PLACEMENTS = os.getenv('NOTION_DATABASE_PLACEMENTS')
 
 
 # Application definition
@@ -58,6 +54,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'trivia',
 ]
+
+# Custom User Model
+AUTH_USER_MODEL = 'trivia.PublicKeyUser'
 
 
 MIDDLEWARE = [
@@ -102,9 +101,17 @@ DATABASES = {
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+# Custom Authentication Backend
+AUTHENTICATION_BACKENDS = [
+    'trivia.auth_backend.PublicKeyAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',  # Keep for admin
+]
 
+# Login URL - redirect to home page for key-based authentication
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/'
+
+# Password validation (not used for public key auth, but kept for admin)
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -142,3 +149,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Session Security Settings
+# Note: SESSION_COOKIE_SECURE is False because Tor hidden services use HTTP (not HTTPS)
+# However, Tor provides encryption at the network layer, so this is acceptable
+SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days (matches user cleanup of 60 days)
+SESSION_SAVE_EVERY_REQUEST = False  # Only save session when modified
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Persist across browser restarts
+
+# CSRF Security Settings
+CSRF_COOKIE_HTTPONLY = True  # Prevents JavaScript access to CSRF token cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+# CSRF_COOKIE_SECURE is False for Tor hidden service (HTTP only)

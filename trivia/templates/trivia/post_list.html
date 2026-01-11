@@ -15,10 +15,24 @@
             </span>
             <div class="post-meta">
               <i class="material-icons tiny">person</i> {{ post.author }}
+              {% if post.author_user %}
+                <a href="{% url 'trivia:user_profile' %}?user={{ post.author_user.fingerprint }}" class="chip" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="View author profile">
+                  {{ post.author_user.get_short_fingerprint }}
+                </a>
+              {% endif %}
               <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"M d, Y" }}
               {% if post.category %}
                 <i class="material-icons tiny">folder</i> 
                 <a href="{% url 'trivia:category_detail' post.category.slug %}">{{ post.category.name }}</a>
+              {% endif %}
+              {% if post.signature_valid %}
+                <span class="chip green white-text" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="Post signature verified">
+                  <i class="material-icons tiny">verified</i> Verified
+                </span>
+              {% elif post.signature %}
+                <span class="chip red white-text" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="Post signature invalid">
+                  <i class="material-icons tiny">error</i> Invalid
+                </span>
               {% endif %}
             </div>
             {% if post.excerpt %}
@@ -48,7 +62,46 @@
     </div>
     
     <div class="col s12 m4">
+      {% if not user.is_authenticated %}
+      <!-- Account Creation Section -->
       <div class="card">
+        <div class="card-content">
+          <span class="card-title">Create Account</span>
+          <p>Generate a private key to create an account. Your private key will be downloaded - save it securely!</p>
+          <a href="{% url 'trivia:generate_keys' %}" class="btn purple waves-effect waves-light" id="create-account-btn">
+            <i class="material-icons left">vpn_key</i>Create Account (Download Key)
+          </a>
+          <p class="grey-text text-darken-1" style="font-size: 0.9em; margin-top: 15px;">
+            Clicking this will generate and download your private key file. Save it securely - you'll need it to login.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Login Section -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-content">
+          <span class="card-title">Login</span>
+          <p>Upload your private key file to login:</p>
+          <form id="login-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="file-field input-field">
+              <div class="btn purple">
+                <span><i class="material-icons left">folder_open</i>Choose File</span>
+                <input type="file" id="private-key-file" name="private_key_file" accept=".pem,.key,.txt" required>
+              </div>
+              <div class="file-path-wrapper">
+                <input class="file-path validate" type="text" placeholder="Select your private_key.pem file">
+              </div>
+            </div>
+            <button type="submit" class="btn purple waves-effect waves-light" id="login-btn">
+              <i class="material-icons left">login</i>Login
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+      
+      <div class="card" style="margin-top: 20px;">
         <div class="card-content">
           <span class="card-title">Categories</span>
           <ul>
@@ -78,6 +131,7 @@
         </div>
       </div>
       
+      {% if user.is_authenticated %}
       <div class="card" style="margin-top: 20px;">
         <div class="card-action">
           <a href="{% url 'trivia:post_create' %}" class="btn purple waves-effect waves-light">
@@ -85,6 +139,73 @@
           </a>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script>
+$(document).ready(function() {
+    // Initialize Materialize file input
+    $('.file-field').each(function() {
+        $(this).find('input[type="file"]').on('change', function() {
+            const fileName = $(this)[0].files[0]?.name || '';
+            $(this).closest('.file-field').find('.file-path').val(fileName);
+        });
+    });
+
+    // Login form submission
+    $('#login-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = $('#private-key-file')[0];
+        if (!fileInput.files || fileInput.files.length === 0) {
+            M.toast({html: 'Please select a private key file'});
+            return;
+        }
+        
+        // Get challenge first
+        $.get('{% url "trivia:get_challenge" %}')
+            .done(function(challengeData) {
+                const challenge = challengeData.challenge;
+                
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('private_key_file', fileInput.files[0]);
+                formData.append('challenge', challenge);
+                // Add CSRF token
+                const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+                if (csrfToken) {
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+                }
+                
+                // Submit login
+                $.ajax({
+                    url: '{% url "trivia:auth_login" %}',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            M.toast({html: 'Login successful!'});
+                            location.reload();
+                        } else {
+                            M.toast({html: 'Login failed: ' + (response.error || 'Unknown error')});
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || 'Login failed';
+                        M.toast({html: error});
+                    }
+                });
+            })
+            .fail(function() {
+                M.toast({html: 'Error getting challenge'});
+            });
+    });
+});
+</script>
 {% endblock %}

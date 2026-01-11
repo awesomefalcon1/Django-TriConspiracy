@@ -18,10 +18,28 @@
           <h2>{{ post.title }}</h2>
           <div class="post-meta" style="margin-bottom: 20px;">
             <i class="material-icons tiny">person</i> {{ post.author }}
+            {% if post.author_user %}
+              <a href="{% url 'trivia:user_profile' %}?user={{ post.author_user.fingerprint }}" class="chip" title="View author profile">
+                <i class="material-icons tiny">person</i> {{ post.author_user.get_short_fingerprint }}
+              </a>
+            {% endif %}
             <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"F d, Y" }}
             {% if post.category %}
               <i class="material-icons tiny">folder</i> 
               <a href="{% url 'trivia:category_detail' post.category.slug %}">{{ post.category.name }}</a>
+            {% endif %}
+            {% if post.signature_valid %}
+              <span class="chip green white-text" title="Post signature verified">
+                <i class="material-icons tiny">verified</i> Verified
+              </span>
+            {% elif post.signature %}
+              <span class="chip red white-text" title="Post signature invalid">
+                <i class="material-icons tiny">error</i> Invalid Signature
+              </span>
+            {% else %}
+              <span class="chip grey white-text" title="Post not signed">
+                <i class="material-icons tiny">info</i> Not Signed
+              </span>
             {% endif %}
           </div>
           
