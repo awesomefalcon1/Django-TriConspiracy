@@ -1,4 +1,5 @@
 {% extends 'blog/base.html' %}
+{% load blog_filters %}
 
 {% block title %}{{ post.title }}{% endblock %}
 
@@ -17,29 +18,18 @@
         <div class="card-content">
           <h2>{{ post.title }}</h2>
           <div class="post-meta" style="margin-bottom: 20px;">
-            <i class="material-icons tiny">person</i> {{ post.author }}
+            <i class="material-icons tiny">person</i>
             {% if post.author_user %}
               <a href="{% url 'blog:user_profile' %}?user={{ post.author_user.fingerprint }}" class="chip" title="View author profile">
-                <i class="material-icons tiny">person</i> {{ post.author_user.get_short_fingerprint }}
+                {{ post.author_user.get_short_fingerprint }}
               </a>
+            {% else %}
+              {{ post.author }}
             {% endif %}
             <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"F d, Y" }}
             {% if post.category %}
               <i class="material-icons tiny">folder</i> 
               <a href="{% url 'blog:category_detail' post.category.slug %}">{{ post.category.name }}</a>
-            {% endif %}
-            {% if post.signature_valid %}
-              <span class="chip green white-text" title="Post signature verified">
-                <i class="material-icons tiny">verified</i> Verified
-              </span>
-            {% elif post.signature %}
-              <span class="chip red white-text" title="Post signature invalid">
-                <i class="material-icons tiny">error</i> Invalid Signature
-              </span>
-            {% else %}
-              <span class="chip grey white-text" title="Post not signed">
-                <i class="material-icons tiny">info</i> Not Signed
-              </span>
             {% endif %}
           </div>
           
@@ -57,8 +47,8 @@
             </div>
           {% endif %}
           
-          <div class="post-content">
-            {{ post.content|linebreaks }}
+          <div class="post-content" style="line-height: 1.6;">
+            {{ post.content|markdown }}
           </div>
         </div>
       </div>

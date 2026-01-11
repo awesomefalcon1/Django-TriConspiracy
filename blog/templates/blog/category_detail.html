@@ -24,7 +24,14 @@
               <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
             </span>
             <div class="post-meta">
-              <i class="material-icons tiny">person</i> {{ post.author }}
+              <i class="material-icons tiny">person</i>
+              {% if post.author_user %}
+                <a href="{% url 'blog:user_profile' %}?user={{ post.author_user.fingerprint }}" class="chip" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="View author profile">
+                  {{ post.author_user.get_short_fingerprint }}
+                </a>
+              {% else %}
+                {{ post.author }}
+              {% endif %}
               <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"M d, Y" }}
             </div>
             {% if post.excerpt %}

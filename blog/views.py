@@ -9,7 +9,10 @@ from django.utils import timezone
 import secrets
 import json
 from .models import BlogPost, Category, Tag, PublicKeyUser
-from .crypto_auth import generate_key_pair, sign_message, get_public_key_fingerprint, verify_signature, create_post_message
+from .crypto_auth import (
+    generate_key_pair, sign_message, get_public_key_fingerprint, 
+    encrypt_fingerprint_and_hash, verify_encrypted_fingerprint_and_hash
+)
 
 
 def post_list(request: HttpRequest):
@@ -48,17 +51,20 @@ def post_detail(request: HttpRequest, slug: str):
         category=post.category
     ).exclude(id=post.id)[:3]
     
-    # Verify signature if post has one and author_user exists
-    if post.signature and post.author_user:
-        from .crypto_auth import create_post_message
-        timestamp = post.created_at.isoformat()
-        message_to_verify = create_post_message(post.title, post.content, timestamp)
-        signature_valid = verify_signature(post.author_user.public_key, message_to_verify, post.signature)
+    # Verify encryption if post has encrypted data and author_user exists
+    if post.encrypted_data and post.author_user:
+        from .crypto_auth import verify_encrypted_fingerprint_and_hash
+        encrypted_valid = verify_encrypted_fingerprint_and_hash(
+            post.author_user.public_key,
+            post.encrypted_data,
+            post.author_user.fingerprint,
+            post.content
+        )
         
-        # Update signature_valid if it changed
-        if post.signature_valid != signature_valid:
-            post.signature_valid = signature_valid
-            post.save(update_fields=['signature_valid'])
+        # Update encrypted_valid if it changed
+        if post.encrypted_valid != encrypted_valid:
+            post.encrypted_valid = encrypted_valid
+            post.save(update_fields=['encrypted_valid'])
     
     context = {
         'post': post,
@@ -240,18 +246,11 @@ def post_create(request: HttpRequest):
         category_id = request.POST.get('category')
         new_category_name = request.POST.get('new_category', '').strip()
         tag_ids = request.POST.getlist('tags')
+        new_tags_string = request.POST.get('new_tags', '').strip()
         published = request.POST.get('published') == 'on'
         
         if not title or not content:
             messages.error(request, 'Title and content are required')
-            return redirect('blog:post_create')
-        
-        # Get signature from POST data (created client-side)
-        signature = request.POST.get('signature', '').strip()
-        timestamp = request.POST.get('timestamp', '').strip()
-        
-        if not signature:
-            messages.error(request, 'Post signature is required. Please sign the post with your private key.')
             return redirect('blog:post_create')
         
         # Generate slug from title
@@ -263,19 +262,7 @@ def post_create(request: HttpRequest):
             slug = f"{base_slug}-{counter}"
             counter += 1
         
-        # Create timestamp if not provided
-        if not timestamp:
-            timestamp = timezone.now().isoformat()
-        
-        # Verify signature
-        message_to_verify = create_post_message(title, content, timestamp)
-        public_key = request.user.public_key
-        signature_valid = verify_signature(public_key, message_to_verify, signature)
-        
-        if not signature_valid:
-            messages.error(request, 'Invalid signature. The post could not be verified.')
-            return redirect('blog:post_create')
-        
+        # Create post without encryption requirement
         post = BlogPost(
             title=title,
             slug=slug,
@@ -284,8 +271,8 @@ def post_create(request: HttpRequest):
             author=author,
             published=published,
             author_user=request.user if request.user.is_authenticated else None,
-            signature=signature,
-            signature_valid=True
+            encrypted_data='',  # No encryption required
+            encrypted_valid=False
         )
         
         # Handle category - prioritize new category name over existing selection
@@ -305,13 +292,25 @@ def post_create(request: HttpRequest):
         
         post.save()
         
-        # Add tags
+        # Add existing tags
         for tag_id in tag_ids:
             try:
                 tag = Tag.objects.get(id=tag_id)
                 post.tags.add(tag)
             except Tag.DoesNotExist:
                 pass
+        
+        # Create and add new tags
+        if new_tags_string:
+            tag_names = [name.strip() for name in new_tags_string.split(',') if name.strip()]
+            for tag_name in tag_names:
+                if tag_name:  # Ensure tag name is not empty
+                    tag_slug = slugify(tag_name)
+                    tag, created = Tag.objects.get_or_create(
+                        slug=tag_slug,
+                        defaults={'name': tag_name}
+                    )
+                    post.tags.add(tag)
         
         messages.success(request, 'Post created successfully!')
         return redirect('blog:post_detail', slug=post.slug)
@@ -348,25 +347,6 @@ def api_create_post(request: HttpRequest):
     if not title or not content:
         return JsonResponse({'error': 'Title and content are required'}, status=400)
     
-    # Get signature from POST data (created client-side)
-    signature = request.POST.get('signature', '').strip()
-    timestamp = request.POST.get('timestamp', '').strip()
-    
-    if not signature:
-        return JsonResponse({'error': 'Post signature is required. Please sign the post with your private key.'}, status=400)
-    
-    # Create timestamp if not provided
-    if not timestamp:
-        timestamp = timezone.now().isoformat()
-    
-    # Verify signature
-    message_to_verify = create_post_message(title, content, timestamp)
-    public_key = request.user.public_key
-    signature_valid = verify_signature(public_key, message_to_verify, signature)
-    
-    if not signature_valid:
-        return JsonResponse({'error': 'Invalid signature. The post could not be verified.'}, status=400)
-    
     # Generate slug
     slug = slugify(title)
     base_slug = slug
@@ -375,6 +355,7 @@ def api_create_post(request: HttpRequest):
         slug = f"{base_slug}-{counter}"
         counter += 1
     
+    # Create post without encryption requirement
     post = BlogPost(
         title=title,
         slug=slug,
@@ -383,8 +364,8 @@ def api_create_post(request: HttpRequest):
         author=author,
         published=published,
         author_user=request.user if request.user.is_authenticated else None,
-        signature=signature,
-        signature_valid=True
+        encrypted_data='',  # No encryption required
+        encrypted_valid=False
     )
     
     # Handle category - prioritize new category name over existing selection
@@ -404,13 +385,25 @@ def api_create_post(request: HttpRequest):
     
     post.save()
     
-    # Add tags
+    # Add existing tags
     for tag_id in tag_ids:
         try:
             tag = Tag.objects.get(id=tag_id)
             post.tags.add(tag)
         except Tag.DoesNotExist:
             pass
+    
+    # Create and add new tags
+    if new_tags_string:
+        tag_names = [name.strip() for name in new_tags_string.split(',') if name.strip()]
+        for tag_name in tag_names:
+            if tag_name:  # Ensure tag name is not empty
+                tag_slug = slugify(tag_name)
+                tag, created = Tag.objects.get_or_create(
+                    slug=tag_slug,
+                    defaults={'name': tag_name}
+                )
+                post.tags.add(tag)
     
     return JsonResponse({
         'post': {

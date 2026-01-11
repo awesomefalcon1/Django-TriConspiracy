@@ -35,11 +35,6 @@
                   <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
                   <span class="grey-text" style="float: right;">
                     {{ post.created_at|date:"M d, Y" }}
-                    {% if post.signature_valid %}
-                      <i class="material-icons tiny green-text" title="Signature verified">verified</i>
-                    {% else %}
-                      <i class="material-icons tiny red-text" title="Signature not verified">error</i>
-                    {% endif %}
                   </span>
                 </li>
               {% endfor %}

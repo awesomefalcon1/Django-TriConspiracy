@@ -139,19 +139,126 @@ def extract_public_key_from_private(private_key_pem: str) -> str:
     return public_key_pem
 
 
-def create_post_message(title: str, content: str, timestamp: str) -> str:
+def encrypt_with_private_key(private_key_pem: str, data: bytes) -> str:
     """
-    Create a canonical message string for signing a blog post.
-    This ensures the signature is tied to the exact content.
+    Encrypt data using a private key.
+    In RSA, "encryption" with private key is actually signing, but we use
+    the signing operation to create encrypted data that can be verified/decrypted
+    with the public key.
     
     Args:
-        title: Post title
-        content: Post content
-        timestamp: ISO format timestamp (string)
+        private_key_pem: Private key in PEM format
+        data: Data to encrypt (bytes)
     
     Returns:
-        Message string to sign
+        Base64-encoded encrypted/signed data
     """
-    # Use a canonical format: title|content|timestamp
-    # This ensures the signature is tied to the exact content
-    return f"{title}|{content}|{timestamp}"
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives import hashes
+    
+    # Load private key
+    private_key = serialization.load_pem_private_key(
+        private_key_pem.encode('utf-8'),
+        password=None,
+        backend=default_backend()
+    )
+    
+    # For RSA, we use signing with the private key (which is the private key operation)
+    # This creates data that can be verified with the public key
+    # We use PKCS1v15 padding for compatibility
+    encrypted = private_key.sign(
+        data,
+        padding.PKCS1v15(),
+        hashes.SHA256()
+    )
+    
+    return base64.b64encode(encrypted).decode('utf-8')
+
+
+def decrypt_with_public_key(public_key_pem: str, encrypted_data: str, original_data: bytes) -> bool:
+    """
+    Verify/decrypt data using a public key.
+    Since we used private key signing for "encryption", we verify it with the public key.
+    
+    Args:
+        public_key_pem: Public key in PEM format
+        encrypted_data: Base64-encoded encrypted/signed data
+        original_data: Original data to verify against
+    
+    Returns:
+        True if verification succeeds (decryption is valid), False otherwise
+    """
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives import hashes
+    
+    # Load public key
+    public_key = serialization.load_pem_public_key(
+        public_key_pem.encode('utf-8'),
+        backend=default_backend()
+    )
+    
+    # Decode encrypted/signed data
+    encrypted_bytes = base64.b64decode(encrypted_data)
+    
+    try:
+        # Verify the signature (which acts as decryption verification)
+        public_key.verify(
+            encrypted_bytes,
+            original_data,
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
+        return True
+    except Exception:
+        return False
+
+
+def encrypt_fingerprint_and_hash(private_key_pem: str, fingerprint: str, content: str) -> str:
+    """
+    Encrypt the fingerprint and content hash using the private key.
+    
+    Args:
+        private_key_pem: Private key in PEM format
+        fingerprint: User's fingerprint (SHA256 hash of public key)
+        content: Content to hash
+    
+    Returns:
+        Base64-encoded encrypted data containing fingerprint|content_hash
+    """
+    # Hash the content using SHA256 and encode as base64 (to match client-side)
+    content_hash_bytes = hashlib.sha256(content.encode('utf-8')).digest()
+    content_hash_b64 = base64.b64encode(content_hash_bytes).decode('utf-8')
+    
+    # Combine fingerprint and content hash
+    data_string = f"{fingerprint}|{content_hash_b64}"
+    data_bytes = data_string.encode('utf-8')
+    
+    # Encrypt with private key
+    return encrypt_with_private_key(private_key_pem, data_bytes)
+
+
+def verify_encrypted_fingerprint_and_hash(public_key_pem: str, encrypted_data: str, fingerprint: str, content: str) -> bool:
+    """
+    Verify encrypted fingerprint and content hash.
+    
+    Args:
+        public_key_pem: Public key in PEM format
+        encrypted_data: Base64-encoded encrypted/signed data
+        fingerprint: Expected fingerprint
+        content: Content to verify
+    
+    Returns:
+        True if fingerprint and content hash match, False otherwise
+    """
+    try:
+        # Create the expected data string with base64-encoded hash (to match client-side)
+        content_hash_bytes = hashlib.sha256(content.encode('utf-8')).digest()
+        content_hash_b64 = base64.b64encode(content_hash_bytes).decode('utf-8')
+        expected_data_string = f"{fingerprint}|{content_hash_b64}"
+        expected_data_bytes = expected_data_string.encode('utf-8')
+        
+        # Verify the encrypted data matches the expected data
+        return decrypt_with_public_key(public_key_pem, encrypted_data, expected_data_bytes)
+    except Exception as e:
+        print(f"Verification error: {e}")
+        return False

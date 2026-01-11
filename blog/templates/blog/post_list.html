@@ -14,25 +14,18 @@
               <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
             </span>
             <div class="post-meta">
-              <i class="material-icons tiny">person</i> {{ post.author }}
+              <i class="material-icons tiny">person</i>
               {% if post.author_user %}
                 <a href="{% url 'blog:user_profile' %}?user={{ post.author_user.fingerprint }}" class="chip" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="View author profile">
                   {{ post.author_user.get_short_fingerprint }}
                 </a>
+              {% else %}
+                {{ post.author }}
               {% endif %}
               <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"M d, Y" }}
               {% if post.category %}
                 <i class="material-icons tiny">folder</i> 
                 <a href="{% url 'blog:category_detail' post.category.slug %}">{{ post.category.name }}</a>
-              {% endif %}
-              {% if post.signature_valid %}
-                <span class="chip green white-text" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="Post signature verified">
-                  <i class="material-icons tiny">verified</i> Verified
-                </span>
-              {% elif post.signature %}
-                <span class="chip red white-text" style="display: inline-block; height: 24px; line-height: 24px; padding: 0 8px; margin: 0 4px;" title="Post signature invalid">
-                  <i class="material-icons tiny">error</i> Invalid
-                </span>
               {% endif %}
             </div>
             {% if post.excerpt %}

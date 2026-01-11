@@ -7,17 +7,12 @@
     <div class="col s12 m8 offset-m2">
       <h4>Create New Post</h4>
       
-      <div class="card-panel yellow lighten-4">
-        <i class="material-icons left">info</i>
-        <strong>Note:</strong> Your post will be signed with your private key. You'll need to upload your private key file to sign the post.
-      </div>
       
       <form method="post" id="create-post-form">
         {% csrf_token %}
         
-        <!-- Hidden fields for signature and timestamp -->
-        <input type="hidden" id="signature" name="signature" value="">
-        <input type="hidden" id="timestamp" name="timestamp" value="">
+        <!-- Hidden author field -->
+        <input type="hidden" id="author" name="author" value="{{ user.get_short_fingerprint }}">
         
         <div class="input-field">
           <input id="title" name="title" type="text" required>
@@ -25,17 +20,15 @@
         </div>
         
         <div class="input-field">
-          <textarea id="content" name="content" class="materialize-textarea" required></textarea>
-          <label for="content">Content *</label>
+          <textarea id="content" name="content" class="materialize-textarea" required placeholder="You can use Markdown formatting here. Examples: **bold**, *italic*, `code`, # Heading, etc."></textarea>
+          <label for="content">Content (Markdown supported) *</label>
+          <span class="helper-text">Supports Markdown: **bold**, *italic*, `code`, # headings, lists, links, etc.</span>
         </div>
         
         <div class="input-field">
           <textarea id="excerpt" name="excerpt" class="materialize-textarea"></textarea>
           <label for="excerpt">Excerpt (optional)</label>
         </div>
-        
-        <!-- Author is automatically set to user's fingerprint -->
-        <input type="hidden" id="author" name="author" value="{{ user.get_short_fingerprint }}">
         
         <div class="input-field">
           <select id="category" name="category">
@@ -55,11 +48,18 @@
         
         <div class="input-field">
           <select id="tags" name="tags" multiple>
+            <option value="" disabled>Select Existing Tags</option>
             {% for tag in tags %}
               <option value="{{ tag.id }}">{{ tag.name }}</option>
             {% endfor %}
           </select>
-          <label>Tags (hold Ctrl/Cmd to select multiple)</label>
+          <label>Tags (select existing or create new below)</label>
+        </div>
+        
+        <div class="input-field">
+          <input id="new-tags" name="new_tags" type="text" placeholder="Enter new tags separated by commas (e.g., 'python, django, web')">
+          <label for="new-tags">Create New Tags (optional)</label>
+          <span class="helper-text">Users can create their own tags for organizing posts. Separate multiple tags with commas.</span>
         </div>
         
         <p>
@@ -69,21 +69,8 @@
           </label>
         </p>
         
-        <div class="file-field input-field" style="margin-top: 20px;">
-          <div class="btn purple">
-            <span><i class="material-icons left">vpn_key</i>Select Private Key</span>
-            <input type="file" id="private-key-file" accept=".pem,.key,.txt" required>
-          </div>
-          <div class="file-path-wrapper">
-            <input class="file-path validate" type="text" placeholder="Upload your private key to sign the post">
-          </div>
-        </div>
-        <p class="grey-text text-darken-1" style="font-size: 0.9em;">
-          <i class="material-icons tiny">lock</i> Your private key is used only to sign the post. It never leaves your browser.
-        </p>
-        
         <button class="btn waves-effect waves-light purple" type="submit" id="submit-btn">
-          <i class="material-icons left">save</i>Create & Sign Post
+          <i class="material-icons left">save</i>Create Post
         </button>
         <a href="{% url 'blog:post_list' %}" class="btn-flat">Cancel</a>
       </form>
@@ -108,76 +95,30 @@
         }
       });
       
-      // Handle file input
-      $('.file-field').each(function() {
-        $(this).find('input[type="file"]').on('change', function() {
-          const fileName = $(this)[0].files[0]?.name || '';
-          $(this).closest('.file-field').find('.file-path').val(fileName);
-        });
+      // Handle tags select - clear new tags input when selecting existing
+      $('#tags').on('change', function() {
+        if ($(this).val() && $(this).val().length > 0) {
+          // Don't clear new tags - allow both existing and new tags
+        }
       });
       
-      // Handle form submission with signing
-      const form = $('#create-post-form')[0];
+      // Handle new tags input - allow both existing and new tags
+      $('#new-tags').on('input', function() {
+        // Allow both existing tags and new tags to coexist
+      });
+      
+      // Handle form submission
       $('#create-post-form').on('submit', function(e) {
-        e.preventDefault();
-        
         const title = $('#title').val().trim();
         const content = $('#content').val().trim();
-        const fileInput = $('#private-key-file')[0];
         
         if (!title || !content) {
+          e.preventDefault();
           M.toast({html: 'Title and content are required'});
-          return;
+          return false;
         }
         
-        if (!fileInput.files || fileInput.files.length === 0) {
-          M.toast({html: 'Please select your private key file to sign the post'});
-          return;
-        }
-        
-        // Disable submit button
-        $('#submit-btn').prop('disabled', true).text('Signing...');
-        
-        // Read private key file
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          try {
-            const privateKeyPem = event.target.result;
-            
-            // Create timestamp
-            const timestamp = new Date().toISOString();
-            $('#timestamp').val(timestamp);
-            
-            // Create message to sign: title|content|timestamp
-            const messageToSign = title + '|' + content + '|' + timestamp;
-            
-            // Sign message with private key using jsrsasign
-            const rsa = new RSAKey();
-            rsa.readPrivateKeyFromPEMString(privateKeyPem);
-            const sig = new KJUR.crypto.Signature({"alg": "SHA256withRSA"});
-            sig.init(rsa);
-            sig.updateString(messageToSign);
-            const signature = sig.sign();
-            const signatureB64 = hextob64(signature);
-            
-            // Set signature in form
-            $('#signature').val(signatureB64);
-            
-            // Submit the form using the form element directly
-            form.submit();
-          } catch (error) {
-            console.error('Signing error:', error);
-            M.toast({html: 'Error signing post: ' + (error.message || 'Unknown error')});
-            $('#submit-btn').prop('disabled', false).html('<i class="material-icons left">save</i>Create & Sign Post');
-          }
-        };
-        
-        reader.onerror = function() {
-          M.toast({html: 'Error reading private key file'});
-          $('#submit-btn').prop('disabled', false).html('<i class="material-icons left">save</i>Create & Sign Post');
-        };
-        
-        reader.readAsText(fileInput.files[0]);
+        // Form will submit normally - no encryption needed
       });
     });
   </script>
