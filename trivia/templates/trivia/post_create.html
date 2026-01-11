@@ -1,0 +1,72 @@
+{% extends 'trivia/base.html' %}
+
+{% block title %}Create New Post{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col s12 m8 offset-m2">
+      <h4>Create New Post</h4>
+      
+      <form method="post" id="create-post-form">
+        {% csrf_token %}
+        
+        <div class="input-field">
+          <input id="title" name="title" type="text" required>
+          <label for="title">Title *</label>
+        </div>
+        
+        <div class="input-field">
+          <textarea id="content" name="content" class="materialize-textarea" required></textarea>
+          <label for="content">Content *</label>
+        </div>
+        
+        <div class="input-field">
+          <textarea id="excerpt" name="excerpt" class="materialize-textarea"></textarea>
+          <label for="excerpt">Excerpt (optional)</label>
+        </div>
+        
+        <div class="input-field">
+          <input id="author" name="author" type="text" value="Anonymous">
+          <label for="author">Author</label>
+        </div>
+        
+        <div class="input-field">
+          <select id="category" name="category">
+            <option value="" selected>No Category</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <label>Category</label>
+        </div>
+        
+        <div class="input-field">
+          <select id="tags" name="tags" multiple>
+            {% for tag in tags %}
+              <option value="{{ tag.id }}">{{ tag.name }}</option>
+            {% endfor %}
+          </select>
+          <label>Tags (hold Ctrl/Cmd to select multiple)</label>
+        </div>
+        
+        <p>
+          <label>
+            <input type="checkbox" name="published" id="published" />
+            <span>Publish immediately</span>
+          </label>
+        </p>
+        
+        <button class="btn waves-effect waves-light purple" type="submit">
+          <i class="material-icons left">save</i>Create Post
+        </button>
+        <a href="{% url 'trivia:post_list' %}" class="btn-flat">Cancel</a>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    $(function(){
+      $('select').formSelect();
+    });
+  </script>
+{% endblock %}

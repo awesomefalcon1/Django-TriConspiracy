@@ -1,29 +1,40 @@
 from django.contrib import admin
-from .models import Event, Question, Prize, Placement
+from .models import BlogPost, Category, Tag
 
 
-@admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'starts_at', 'location', 'created_at')
-    search_fields = ('title', 'location')
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'created_at')
+    search_fields = ('name', 'description')
+    prepopulated_fields = {'slug': ('name',)}
 
 
-@admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('event', 'text', 'correct_choice', 'created_at')
-    search_fields = ('text',)
-    list_filter = ('event',)
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'created_at')
+    search_fields = ('name',)
+    prepopulated_fields = {'slug': ('name',)}
 
 
-@admin.register(Prize)
-class PrizeAdmin(admin.ModelAdmin):
-    list_display = ('event', 'rank', 'name', 'value')
-    list_filter = ('event',)
-
-
-@admin.register(Placement)
-class PlacementAdmin(admin.ModelAdmin):
-    list_display = ('event', 'rank', 'participant_name', 'score')
-    list_filter = ('event',)
-
-# Register your models here.
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'category', 'published', 'created_at', 'updated_at')
+    list_filter = ('published', 'category', 'tags', 'created_at')
+    search_fields = ('title', 'content', 'author')
+    prepopulated_fields = {'slug': ('title',)}
+    filter_horizontal = ('tags',)
+    date_hierarchy = 'created_at'
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Content', {
+            'fields': ('title', 'slug', 'content', 'excerpt')
+        }),
+        ('Metadata', {
+            'fields': ('author', 'category', 'tags', 'published', 'published_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

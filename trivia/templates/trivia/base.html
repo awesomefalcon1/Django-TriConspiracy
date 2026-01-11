@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>UW Trivia</title>
+  <title>{% block title %}Blog{% endblock %}</title>
   <!-- Materialize CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <!-- Materialize JS -->
@@ -13,23 +15,41 @@
   <style>
     html, body { height: 100%; }
     body { display: flex; min-height: 100vh; flex-direction: column; margin: 0; }
-    main { flex: 1 0 auto; width: 100%; padding: 24px; }
+    main { flex: 1 0 auto; width: 100%; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .post-card { margin-bottom: 20px; }
+    .post-meta { color: #757575; font-size: 0.9em; }
+    .post-content { margin-top: 20px; line-height: 1.8; }
+    .tag-chip { display: inline-block; margin: 2px; }
+    nav .brand-logo { margin-left: 20px; }
   </style>
 </head>
 <body>
   <nav class="purple darken-3">
-    <div class="nav-wrapper">
-      <a href="/" class="brand-logo">UW Trivia</a>
+    <div class="nav-wrapper container">
+      <a href="{% url 'trivia:post_list' %}" class="brand-logo">Blog</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li><a href="{% url 'trivia:post_list' %}">Home</a></li>
+        <li><a href="{% url 'trivia:post_create' %}">Write Post</a></li>
+      </ul>
     </div>
   </nav>
 
   <main>
+    {% if messages %}
+      {% for message in messages %}
+        <script>
+          M.toast({html: '{{ message }}', classes: '{{ message.tags }}'});
+        </script>
+      {% endfor %}
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 
   <footer class="page-footer purple darken-3">
-    <div class="footer-copyrigh t">
-      <div>Crowdsourced trivia events</div>
+    <div class="footer-copyright">
+      <div class="container">
+        <div>© 2026 Blog - Share your thoughts</div>
+      </div>
     </div>
   </footer>
 </body>

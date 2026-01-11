@@ -31,7 +31,13 @@ SECRET_KEY = 'django-insecure-mdx0x2nl0qj%wtq(cvf@#1n*gd!9lcd0-phz!^55g(ljql9def
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS: List[str] = []
+# Allow localhost and Tor hidden service .onion address
+# Get .onion address from: sudo cat /var/lib/tor/django_hidden_service/hostname
+ALLOWED_HOSTS: List[str] = [
+    'localhost',
+    '127.0.0.1',
+    'rxsfnoyznfaverx7wxod3wfvg4wtj6yxt5hdiujhz2ywtwr6yga6wgqd.onion',  # Tor hidden service
+]
 
 # Notion API Configuration
 NOTION_API_KEY = os.getenv('NOTION_API_KEY')

@@ -6,13 +6,13 @@ app_name = 'trivia'
 
 
 urlpatterns = [
-    path('', views.event_list, name='event_list'),
-    path('events/<int:event_id>/', views.event_detail, name='event_detail'),
-
-    # API endpoints (AJAX)
-    path('api/events/', views.api_create_event, name='api_create_event'),
-    path('api/questions/', views.api_create_question, name='api_create_question'),
-    path('api/prizes/', views.api_create_prize, name='api_create_prize'),
-    path('api/placements/', views.api_create_placement, name='api_create_placement'),
+    # Blog post views
+    path('', views.post_list, name='post_list'),
+    path('post/<slug:slug>/', views.post_detail, name='post_detail'),
+    path('create/', views.post_create, name='post_create'),
+    path('category/<slug:slug>/', views.category_detail, name='category_detail'),
+    
+    # API endpoints
+    path('api/posts/', views.api_create_post, name='api_create_post'),
 ]
 

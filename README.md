@@ -1,59 +1,52 @@
-## UW Trivia (Notion-backed)
+## Blog
 
-This Django app is a jQuery + Materialize UI that proxies CRUD to Notion databases, acting as middleware between the web UI and Notion.
+A simple Django blog application with Materialize CSS UI. Features include blog posts, categories, tags, and a clean, modern interface.
 
-### Environment
+### Features
 
-Create `.env` in the project root with:
+- **Blog Posts**: Create, view, and manage blog posts
+- **Categories**: Organize posts by categories
+- **Tags**: Tag posts for better organization
+- **Publishing**: Draft/publish workflow for posts
+- **Modern UI**: Materialize CSS design
+- **Tor Hidden Service**: Configured to run as a Tor hidden service
 
-```
-NOTION_API_KEY=secret_...
-NOTION_DATABASE_EVENTS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-NOTION_DATABASE_QUESTIONS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-NOTION_DATABASE_PRIZES=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-NOTION_DATABASE_PLACEMENTS=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
+### Models
 
-### Notion database schemas
+- **BlogPost**: Main blog post model with title, content, excerpt, author, category, tags, and publishing status
+- **Category**: Categories for organizing posts
+- **Tag**: Tags for labeling posts
 
-Create four Notion databases with these properties:
+### Setup
 
-- Events (`NOTION_DATABASE_EVENTS`)
-  - Title: Title
-  - Description: Rich text
-  - Location: Rich text
-  - Starts At: Date
-
-- Questions (`NOTION_DATABASE_QUESTIONS`)
-  - Text: Title
-  - EventId: Rich text (stores Event page id)
-  - Choice A: Rich text
-  - Choice B: Rich text
-  - Choice C: Rich text (optional)
-  - Choice D: Rich text (optional)
-  - Correct: Select (A, B, C, D)
-
-- Prizes (`NOTION_DATABASE_PRIZES`)
-  - Name: Title
-  - EventId: Rich text
-  - Description: Rich text
-  - Rank: Number
-  - Value: Number
-
-- Placements (`NOTION_DATABASE_PLACEMENTS`)
-  - Participant: Title
-  - EventId: Rich text
-  - Score: Number
-  - Rank: Number
-
-You can switch `EventId` to a Relation to the Events DB and adjust `notion_middleware/notion_client.py` accordingly.
-
-### Run
-
-```
+1. Install dependencies:
+```bash
 pip install -r requirements.txt
+```
+
+2. Run migrations:
+```bash
 python manage.py migrate
+```
+
+3. Create a superuser (optional, for admin access):
+```bash
+python manage.py createsuperuser
+```
+
+4. Run the server:
+```bash
 python manage.py runserver
 ```
 
-Open `/` to list and create events. Inside an event page, add questions, prizes, and placements via AJAX.
+### Usage
+
+- Visit `/` to see all published blog posts
+- Visit `/create/` to create a new blog post
+- Visit `/admin/` to manage posts, categories, and tags via Django admin
+- Posts can be filtered by category or tag
+- Only published posts are visible to visitors
+
+### Tor Hidden Service
+
+This blog is configured to run as a Tor hidden service. See `TOR_SETUP_INSTRUCTIONS.md` for setup details.

@@ -1,0 +1,67 @@
+{% extends 'trivia/base.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col s12">
+      <a href="{% url 'trivia:post_list' %}" class="btn-flat">
+        <i class="material-icons left">arrow_back</i>Back to Posts
+      </a>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col s12">
+      <div class="card">
+        <div class="card-content">
+          <h2>{{ post.title }}</h2>
+          <div class="post-meta" style="margin-bottom: 20px;">
+            <i class="material-icons tiny">person</i> {{ post.author }}
+            <i class="material-icons tiny">access_time</i> {{ post.created_at|date:"F d, Y" }}
+            {% if post.category %}
+              <i class="material-icons tiny">folder</i> 
+              <a href="{% url 'trivia:category_detail' post.category.slug %}">{{ post.category.name }}</a>
+            {% endif %}
+          </div>
+          
+          {% if post.tags.all %}
+            <div style="margin-bottom: 20px;">
+              {% for tag in post.tags.all %}
+                <span class="chip">{{ tag.name }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          
+          {% if post.excerpt %}
+            <div class="grey lighten-4" style="padding: 15px; margin-bottom: 20px; border-left: 4px solid #7b1fa2;">
+              <em>{{ post.excerpt }}</em>
+            </div>
+          {% endif %}
+          
+          <div class="post-content">
+            {{ post.content|linebreaks }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% if related_posts %}
+    <div class="row">
+      <div class="col s12">
+        <h5>Related Posts</h5>
+        {% for related in related_posts %}
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">
+                <a href="{% url 'trivia:post_detail' related.slug %}">{{ related.title }}</a>
+              </span>
+              <p class="post-meta">{{ related.created_at|date:"M d, Y" }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
